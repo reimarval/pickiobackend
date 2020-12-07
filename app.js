@@ -93,6 +93,6 @@ io.on("connection", socket => {
         });
 });
 
-Http.listen(3000, () => {
-    console.log("Listening at :3000...");
+Http.listen(process.env.PORT || '3000', () => {
+    console.log("Listening at " + (process.env.PORT || 3000));
 });
