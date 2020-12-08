@@ -33,7 +33,8 @@ io.on("connection", socket => {
         // console.log(socket.rooms);
         let push_game = {
             'gameid':game_id,
-            'players':[]
+            'players':[],
+            'status':'stop'
         };
         if ( !games.some(game => game.gameid === game_id) ) {
             games.push(push_game);
@@ -58,10 +59,44 @@ io.on("connection", socket => {
         let player = game.players.find(player => player.name === name);
         player.picks.push( { 'round':round, 'pick':pick } );
         io.to('gid='+game_id).emit("counting_picks");
+
+        let roundResults = game.players;
+        let otherPlayers = roundResults.filter(e => e.name != name)
+        // console.log(otherPlayers);
+
+        let matchs = 0;
         setTimeout(() => {
-            io.to('gid='+game_id).emit("round_results", 'win');
-        }, 1000)
-        console.log(game.players);
+            for(var i = 0; i < otherPlayers.length; i += 1) {
+                let picksObject = otherPlayers[i].picks.find(x => x.round === round);
+                if ((pick != undefined) && (picksObject != undefined )) {
+                    let checkingArray = (picksObject.pick === pick);
+                    if (checkingArray) {
+                        matchs += 1
+                    }
+                } else if (pick = undefined) {
+                    matchs -= 1
+                }
+            }
+            console.log(matchs);
+        }, 500);
+
+        
+        // console.log(findWithAttr(roundResults, 'picks', pick));
+        // findWithAttr(roundResults, 'picks', pick);
+
+        setTimeout(() => {
+            let result = '';
+            if (matchs >= 1) {
+                result = 'win'
+            } else if (matchs == 0) {
+                result = 'loss'
+            } else {
+                result = 'mia'
+            }
+            console.log(result);
+            io.to('gid='+game_id).emit("round_results", result);
+        }, 1000);
+        // console.log(JSON.stringify(game.players));
     });
 
 
@@ -92,6 +127,17 @@ io.on("connection", socket => {
             }
         });
 });
+
+// [{"name":"Ava","emoji":"1F973","type":"author","score":0,"picks":[{"round":1,"pick":"2"}]}]
+
+function findWithAttr(array, attr, value) {
+    for(var i = 0; i < array.length; i += 1) {
+        if(array[i][attr] === value) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 Http.listen(process.env.PORT || '3000', () => {
     console.log("Listening at " + (process.env.PORT || 3000));
