@@ -34,7 +34,8 @@ io.on("connection", socket => {
         let push_game = {
             'gameid':game_id,
             'players':[],
-            'status':'stop'
+            'status':'stop',
+            'round':'0'
         };
         if ( !games.some(game => game.gameid === game_id) ) {
             games.push(push_game);
@@ -51,9 +52,16 @@ io.on("connection", socket => {
     });
     socket.on("start_round", data => {
         // let game = games.find(game => game.gameid === game_id)
-        game.status = 'round_'+data
-        io.to('gid='+game_id).emit("game_status", game.status);
-        // console.log(game.status);
+        game.status = 'round';
+        game.round = data;
+        io.to('gid='+game_id).emit("game_status", { 'status': game.status, 'round': game.round });
+        // console.log(game.round);
+    });
+    socket.on("next_round", data => {
+        game.status = 'lobby';
+        game.round = (data + 1);
+        io.to('gid='+game_id).emit("game_status", { 'status': game.status, 'round': game.round });
+        // console.log(game);
     });
     socket.on("pick_made", ({ name, round, pick }) => {
         let player = game.players.find(player => player.name === name);
@@ -63,26 +71,26 @@ io.on("connection", socket => {
         let roundResults = game.players;
         let otherPlayers = roundResults.filter(e => e.name != name)
         // console.log(otherPlayers);
-
         let matchs = 0;
         setTimeout(() => {
-            for(var i = 0; i < otherPlayers.length; i += 1) {
-                let picksObject = otherPlayers[i].picks.find(x => x.round === round);
-                if ((pick != undefined) && (picksObject != undefined )) {
-                    let checkingArray = (picksObject.pick === pick);
-                    if (checkingArray) {
-                        matchs += 1
+            if (pick !== 'NA') {
+                // check for matches with other players picks
+                for(var i = 0; i < otherPlayers.length; i += 1) {
+                    let picksObject = otherPlayers[i].picks.find(x => x.round === round);
+                    if ((pick != undefined) && (picksObject != undefined )) {
+                        let checkingArray = (picksObject.pick === pick);
+                        if (checkingArray) {
+                            matchs += 1
+                        }
+                    } else if (pick = undefined) {
+                        matchs -= 1
                     }
-                } else if (pick = undefined) {
-                    matchs -= 1
                 }
+                // console.log(matchs);
+            } else {
+                matchs = 'NA'
             }
-            console.log(matchs);
         }, 500);
-
-        
-        // console.log(findWithAttr(roundResults, 'picks', pick));
-        // findWithAttr(roundResults, 'picks', pick);
 
         setTimeout(() => {
             let result = '';
@@ -90,13 +98,14 @@ io.on("connection", socket => {
                 result = 'win'
             } else if (matchs == 0) {
                 result = 'loss'
-            } else {
+            } else if (matchs === 'NA') {
                 result = 'mia'
             }
             console.log(result);
-            io.to('gid='+game_id).emit("round_results", result);
+            // io.to('gid='+game_id).emit("round_results", result);
+            socket.emit("round_results", result);
         }, 1000);
-        // console.log(JSON.stringify(game.players));
+        // console.log(JSON.stringify(game));
     });
 
 
@@ -142,3 +151,29 @@ function findWithAttr(array, attr, value) {
 Http.listen(process.env.PORT || '3000', () => {
     console.log("Listening at " + (process.env.PORT || 3000));
 });
+
+
+// {
+//     "gameid": "22222",
+//     "players": [{
+//         "name": "Ava",
+//         "emoji": "1F61C",
+//         "type": "author",
+//         "score": 0,
+//         "picks": [{
+//             "round": 1,
+//             "pick": "NA"
+//         }]
+//     }, {
+//         "name": "Avauui",
+//         "emoji": "1F92F",
+//         "type": "invited",
+//         "score": 0,
+//         "picks": [{
+//             "round": 1,
+//             "pick": "1"
+//         }]
+//     }],
+//     "status": "round",
+//     "round": 1
+// }
