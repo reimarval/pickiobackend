@@ -25,7 +25,7 @@ let games = [
 let game = '';
 
 io.on("connection", socket => {
-    socket.emit("position", position);
+    // socket.emit("position", position);
     socket.on("game_id", data => {
         game_id = data;
         socket.join('gid='+game_id)
@@ -49,7 +49,18 @@ io.on("connection", socket => {
         game.players.push(data);
         io.to('gid='+game_id).emit("update_players", game.players);
         // console.log(game.players);
+        // console.log(JSON.stringify(game.players));
     });
+    socket.on("user_exist", data => {
+        console.log('user_exist triggered');
+        let existing = game.players.find(player => player.clientId === data);
+        if (existing !== undefined) {
+            // console.log(existing.type);
+            socket.emit("existing_user", { 'existing': existing, 'players': game.players });
+        } else {
+            socket.emit("not_user");
+        }
+    });    
     socket.on("start_round", data => {
         // let game = games.find(game => game.gameid === game_id)
         game.status = 'round';
@@ -72,6 +83,7 @@ io.on("connection", socket => {
         let otherPlayers = roundResults.filter(e => e.name != name)
         // console.log(otherPlayers);
         let matchs = 0;
+
         setTimeout(() => {
             if (pick !== 'NA') {
                 // check for matches with other players picks
@@ -81,6 +93,7 @@ io.on("connection", socket => {
                         let checkingArray = (picksObject.pick === pick);
                         if (checkingArray) {
                             matchs += 1
+                            player.score += 10;
                         }
                     } else if (pick = undefined) {
                         matchs -= 1
@@ -90,7 +103,7 @@ io.on("connection", socket => {
             } else {
                 matchs = 'NA'
             }
-        }, 500);
+        }, 1000);
 
         setTimeout(() => {
             let result = '';
@@ -101,11 +114,12 @@ io.on("connection", socket => {
             } else if (matchs === 'NA') {
                 result = 'mia'
             }
-            console.log(result);
+            // console.log(result);
             // io.to('gid='+game_id).emit("round_results", result);
-            socket.emit("round_results", result);
-        }, 1000);
-        // console.log(JSON.stringify(game));
+            socket.emit("round_results", { 'result': result, 'players': game.players });
+            // console.log(JSON.stringify(game.players));
+        }, 1500);
+        // console.log(JSON.stringify(game.player));
     });
 
 
@@ -169,9 +183,11 @@ Http.listen(process.env.PORT || '3000', () => {
 //         "emoji": "1F92F",
 //         "type": "invited",
 //         "score": 0,
+//         "clientIds" : [],
 //         "picks": [{
 //             "round": 1,
-//             "pick": "1"
+//             "pick": "1",
+//             "end": "1st"
 //         }]
 //     }],
 //     "status": "round",
