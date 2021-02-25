@@ -6,10 +6,10 @@ const io = require("socket.io")(Http, {
     }
 });
 
-let position = {
-    x: 200,
-    y: 200
-}
+// let position = {
+//     x: 200,
+//     y: 200
+// }
 
 let game_name = 'Football Team';
 let game_id = '';
@@ -23,11 +23,35 @@ let games = [
 
 // let owner = 'a1b2c3';
 let game = '';
-
+let pool = [
+    'drunkie.png',
+    'abvv.gif',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+    '11',
+    '12',
+    '13',
+    '14',
+    '15',
+    '16',
+    '17',
+    '18',
+    '19'
+    ]
+let backendVersion = Date.now();
 io.on("connection", socket => {
+    socket.emit('backend_version', backendVersion);
     socket.on("game_id", data => {
         game_id = data;
         socket.join('gid='+game_id)
+        let shuffled = pool.map(x => x).sort(() => Math.random() - 0.5).slice(0,12);
+        let starter = { round: 1, items: shuffled }
         let push_game = {
             'gameid':game_id,
             'gamename':'The PsyCatos',
@@ -35,14 +59,16 @@ io.on("connection", socket => {
             'status':'lobby',
             'round':1,
             'ontime':false,
-            'winning':null
+            'winning':null,
+            'rounds':[starter],
+            'gamemode':'popular'
         };
         if ( !games.some(game => game.gameid === game_id) ) {
             games.push(push_game);
         }
         game = games.find(game => game.gameid === game_id);
         io.to('gid='+game_id).emit("game_id", 'hi from ' + socket.id)
-        socket.emit("game_name", game.gamename)
+        socket.emit("game_name", { 'gamename': game.gamename, 'rounds': game.rounds, 'backend_version': backendVersion, 'gamemode': game.gamemode } )
     });
     socket.on("new_player", ({ newPlayer, gId }) => {
         game_id = gId;
@@ -71,15 +97,17 @@ io.on("connection", socket => {
         game.players.forEach((player) => {
             player.picks.push( { 'round':round, 'pick':-2 } );
         });
-        console.log(JSON.stringify(game.players));
+        let playersCount = game.players.length;
+        console.log(playersCount);
+        // console.log(JSON.stringify(game.players));
         // io.to('gid='+game_id).emit("game_status", { 'status': game.status, 'round': game.round });
-        io.to('gid='+game_id).emit("round_starts", { 'status': game.status, 'round': game.round });
+        io.to('gid='+game_id).emit("round_starts", { 'status': game.status, 'round': game.round, 'players_count': playersCount });
         game.ontime = true;
         // server countdown 1
         setTimeout(() => {
             game.ontime = false;
             io.to('gid='+game_id).emit("counting_picks");
-        }, 4500)
+        }, 6500)
         // server countdown 2
         // server countdown 2 -> check_missing -> push vote to player.picks
         setTimeout(() => {
@@ -102,43 +130,113 @@ io.on("connection", socket => {
             let orderedArray = resultArray.sort((a, b) => parseFloat(b.count) - parseFloat(a.count));
             const mias = orderedArray.filter(e => parseFloat(e.item) === -2 );
             const afks = orderedArray.filter(e => parseFloat(e.item) === -1 );
-            const dolos = orderedArray.filter(e => (parseFloat(e.count) === 1) && (parseFloat(e.item) >= 0) );
-            const populars = orderedArray.filter(e => (parseFloat(e.count) >= 2) && (parseFloat(e.item) >= 0) );
-            const winners = populars.filter(e => parseFloat(e.count) === parseFloat(populars[0].count) );
-            console.log(JSON.stringify(mias));
-            console.log(JSON.stringify(afks));
-            console.log(JSON.stringify(dolos));
-            console.log(JSON.stringify(populars));
-            game.players.forEach((player) => {
-                let playerPick = player.picks.find(picks => picks.round === round);
+            // console.log(JSON.stringify(mias));
+            // console.log(JSON.stringify(afks));
+            // console.log(JSON.stringify(dolos));
+            // console.log(JSON.stringify(populars));
+            // console.log(JSON.stringify(unpops));
+            if (game.gamemode === 'popular') {
+                const dolos = orderedArray.filter(e => (parseFloat(e.count) === 1) && (parseFloat(e.item) >= 0) );
+                const populars = orderedArray.filter(e => (parseFloat(e.count) >= 2) && (parseFloat(e.item) >= 0) );
+                const winners = populars.filter(e => parseFloat(e.count) === parseFloat(populars[0].count) );
+                game.players.forEach((player) => {
+                    let playerPick = player.picks.find(picks => picks.round === round);
+                    if (winners[0]) {
+                        if (winners.length == 3) {
+                            if ((parseFloat(playerPick.pick) === parseFloat(winners[0].item)) || (parseFloat(playerPick.pick) === parseFloat(winners[1].item)) || (parseFloat(playerPick.pick) === parseFloat(winners[2].item))) {
+                                player.score += 10;
+                                playerPick.result = 'won';
+                            }
+                        } else if (winners.length == 2) {
+                            if ((parseFloat(playerPick.pick) === parseFloat(winners[0].item)) || (parseFloat(playerPick.pick) === parseFloat(winners[1].item))) {
+                                player.score += 10;
+                                playerPick.result = 'won';
+                            }
+                        } else {
+                            if (parseFloat(playerPick.pick) === parseFloat(winners[0].item)) {
+                                player.score += 10;
+                                playerPick.result = 'won';
+                            }
+                        }
+                    } if (dolos[0]) {
+                        let isADolo = dolos.filter(e => parseFloat(e.item) === playerPick.pick)
+                        if (isADolo[0]) {
+                            playerPick.result = 'loss';
+                        }
+                    } if (afks[0]) {
+                        if (parseFloat(playerPick.pick) === -1) {
+                            playerPick.result = 'afk';
+                        }
+                    } if (mias[0]) {
+                        if (parseFloat(playerPick.pick) === -2) {
+                            playerPick.result = 'mia';
+                        }
+                    }
+                });
+                // console.log(JSON.stringify(game.players));
                 if (winners[0]) {
-                    if (parseFloat(playerPick.pick) === parseFloat(winners[0].item)) {
-                        player.score += 10;
-                        playerPick.result = 'won';
-                    }
-                } if (dolos[0]) {
-                    let isADolo = dolos.filter(e => parseFloat(e.item) === playerPick.pick)
-                    if (isADolo[0]) {
-                        playerPick.result = 'loss';
-                    }
-                } if (afks[0]) {
-                    if (parseFloat(playerPick.pick) === -1) {
-                        playerPick.result = 'afk';
-                    }
-                } if (mias[0]) {
-                    if (parseFloat(playerPick.pick) === -2) {
-                        playerPick.result = 'mia';
-                    }
+                    game.winning = parseFloat(winners[0].item)
+                } else {
+                    game.winning = null
                 }
-            });
-            console.log(JSON.stringify(game.players));
-            if (winners[0]) {
-                game.winning = parseFloat(winners[0].item)
-            } else {
-                game.winning = null
+            } else if (game.gamemode === 'unpopular') {
+                const unpops = orderedArray.filter(e => (parseFloat(e.count) >= 1) && (parseFloat(e.item) >= 0) );
+                let undolos = [];
+                if (unpops[unpops.length - 1].count !== 1){
+                    undolos = orderedArray.filter(e => (parseFloat(e.count) >= 1) && (parseFloat(e.item) >= 0) && (parseFloat(e.count) !== parseFloat(unpops[unpops.length - 1].count)));
+                } else {
+                    undolos = orderedArray.filter(e => (parseFloat(e.count) >= 2) && (parseFloat(e.item) >= 0) && (parseFloat(e.count) !== parseFloat(unpops[unpops.length - 1].count)));
+                }
+                // const undolos = unpops.filter(e => parseFloat(e.count) !== parseFloat(unpops[unpops.length - 1].count) );
+                const unwinners = unpops.filter(e => parseFloat(e.count) === parseFloat(unpops[unpops.length - 1].count) );
+                // console.log(JSON.stringify(unpops) + ' unpops');
+                // console.log(JSON.stringify(undolos) + ' undolos');
+                // console.log(JSON.stringify(unwinners) + ' unwinners');
+                // console.log(game.players);
+                game.players.forEach((player) => {
+                    let playerPick = player.picks.find(picks => picks.round === round);
+                    // console.log(playerPick);
+                    if (unwinners[0]) {
+                        if (unwinners.length == 3) {
+                            if ((parseFloat(playerPick.pick) === parseFloat(unwinners[0].item)) || (parseFloat(playerPick.pick) === parseFloat(unwinners[1].item)) || (parseFloat(playerPick.pick) === parseFloat(unwinners[2].item))) {
+                                player.score += 10;
+                                playerPick.result = 'won';
+                            }
+                        } else if (unwinners.length == 2) {
+                            if ((parseFloat(playerPick.pick) === parseFloat(unwinners[0].item)) || (parseFloat(playerPick.pick) === parseFloat(unwinners[1].item))) {
+                                player.score += 10;
+                                playerPick.result = 'won';
+                            }
+                        } else {
+                            if (parseFloat(playerPick.pick) === parseFloat(unwinners[0].item)) {
+                                player.score += 10;
+                                playerPick.result = 'won';
+                            }
+                        }
+                    } if (undolos[0]) {
+                        let isADolo = undolos.find(e => parseFloat(e.item) === playerPick.pick)
+                        if (isADolo !== undefined) {
+                            playerPick.result = 'loss';
+                        }
+                    } if (afks[0]) {
+                        if (parseFloat(playerPick.pick) === -1) {
+                            playerPick.result = 'afk';
+                        }
+                    } if (mias[0]) {
+                        if (parseFloat(playerPick.pick) === -2) {
+                            playerPick.result = 'mia';
+                        }
+                    }
+                });
+                console.log(JSON.stringify(game.players));
+                if (unwinners[0]) {
+                    game.winning = parseFloat(unwinners[0].item)
+                } else {
+                    game.winning = null
+                }
             }
             io.to('gid='+game_id).emit("round_results", { 'players': game.players, 'winning': game.winning });
-        }, 4600)
+        }, 6600)
     });
     // pick_made
     socket.on("pick_made", ({ name, round, pick, gId }) => {
@@ -157,7 +255,12 @@ io.on("connection", socket => {
         game = games.find(game => game.gameid === game_id);
         game.status = 'lobby';
         game.round = (numberParsed + 1);
-        io.to('gid='+game_id).emit("game_status", { 'status': game.status, 'round': game.round });
+        let shuffled = pool.map(x => x).sort(() => Math.random() - 0.5).slice(0,12);
+        let shuffled_round = { round: game.round, items: shuffled }
+        game.rounds.push(shuffled_round)
+        let gamemode = oddOrEven(game.round);
+        game.gamemode = gamemode;
+        io.to('gid='+game_id).emit("game_status", { 'status': game.status, 'round': game.round, 'rounds': game.rounds, 'gamemode': gamemode });
     });
     socket.on("kick_player", ({ playerId, gId }) => {
         game_id = gId;
@@ -214,10 +317,14 @@ function findWithAttr(array, attr, value) {
     }
     return -1;
 }
+function oddOrEven(x) {
+    return ( x & 1 ) ? "popular" : "unpopular";
+}
 
 Http.listen(process.env.PORT || '3000', () => {
     console.log("Listening at " + (process.env.PORT || 3000));
 });
+
 
 
 // {
