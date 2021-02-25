@@ -111,7 +111,7 @@ io.on("connection", socket => {
         setTimeout(() => {
             game.ontime = false;
             io.to('gid='+game_id).emit("counting_picks");
-        }, 6500)
+        }, 11500)
         // server countdown 2
         // server countdown 2 -> check_missing -> push vote to player.picks
         setTimeout(() => {
@@ -242,7 +242,7 @@ io.on("connection", socket => {
                 }
             }
             io.to('gid='+game_id).emit("round_results", { 'players': game.players, 'winning': game.winning });
-        }, 6600)
+        }, 11600)
     });
     // pick_made
     socket.on("pick_made", ({ name, round, pick, gId }) => {
