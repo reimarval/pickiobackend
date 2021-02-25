@@ -42,7 +42,12 @@ let pool = [
     'heoy.gif',
     'wred.gif',
     'bgse.gif',
-    'ilcx.gif'
+    'ilcx.gif',
+    'uuzq.gif',
+    'zvho.gif',
+    'exmd.gif',
+    'yhjz.gif',
+    'vwpx.gif'
     ]
 let backendVersion = Date.now();
 io.on("connection", socket => {
