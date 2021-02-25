@@ -24,25 +24,25 @@ let games = [
 // let owner = 'a1b2c3';
 let game = '';
 let pool = [
-    'drunkie.png',
-    'abvv.gif',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-    '10',
-    '11',
-    '12',
-    '13',
-    '14',
-    '15',
-    '16',
-    '17',
-    '18',
-    '19'
+    'xklv.gif',
+    'vegg.gif',
+    'obgb.gif',
+    'mopb.gif',
+    'nqlg.gif',
+    'yihr.gif',
+    'walj.gif',
+    'knhv.gif',
+    'zsgq.gif',
+    'relg.gif',
+    'llyv.gif',
+    'aflb.gif',
+    'nzfp.gif',
+    'jcfj.gif',
+    'bipw.gif',
+    'heoy.gif',
+    'wred.gif',
+    'bgse.gif',
+    'ilcx.gif'
     ]
 let backendVersion = Date.now();
 io.on("connection", socket => {
@@ -182,10 +182,12 @@ io.on("connection", socket => {
             } else if (game.gamemode === 'unpopular') {
                 const unpops = orderedArray.filter(e => (parseFloat(e.count) >= 1) && (parseFloat(e.item) >= 0) );
                 let undolos = [];
-                if (unpops[unpops.length - 1].count !== 1){
-                    undolos = orderedArray.filter(e => (parseFloat(e.count) >= 1) && (parseFloat(e.item) >= 0) && (parseFloat(e.count) !== parseFloat(unpops[unpops.length - 1].count)));
-                } else {
-                    undolos = orderedArray.filter(e => (parseFloat(e.count) >= 2) && (parseFloat(e.item) >= 0) && (parseFloat(e.count) !== parseFloat(unpops[unpops.length - 1].count)));
+                if (unpops[0]) {
+                    if (unpops[unpops.length - 1].count !== 1){
+                        undolos = orderedArray.filter(e => (parseFloat(e.count) >= 1) && (parseFloat(e.item) >= 0) && (parseFloat(e.count) !== parseFloat(unpops[unpops.length - 1].count)));
+                    } else {
+                        undolos = orderedArray.filter(e => (parseFloat(e.count) >= 2) && (parseFloat(e.item) >= 0) && (parseFloat(e.count) !== parseFloat(unpops[unpops.length - 1].count)));
+                    }
                 }
                 // const undolos = unpops.filter(e => parseFloat(e.count) !== parseFloat(unpops[unpops.length - 1].count) );
                 const unwinners = unpops.filter(e => parseFloat(e.count) === parseFloat(unpops[unpops.length - 1].count) );
@@ -309,14 +311,6 @@ io.on("connection", socket => {
 
 // [{"name":"Ava","emoji":"1F973","type":"author","score":0,"picks":[{"round":1,"pick":"2"}]}]
 
-function findWithAttr(array, attr, value) {
-    for(var i = 0; i < array.length; i += 1) {
-        if(array[i][attr] === value) {
-            return i;
-        }
-    }
-    return -1;
-}
 function oddOrEven(x) {
     return ( x & 1 ) ? "popular" : "unpopular";
 }
