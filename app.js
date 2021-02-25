@@ -46,7 +46,6 @@ let pool = [
     'uuzq.gif',
     'zvho.gif',
     'exmd.gif',
-    'yhjz.gif',
     'vwpx.gif'
     ]
 let backendVersion = Date.now();
